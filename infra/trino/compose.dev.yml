@@ -1,0 +1,28 @@
+# Development only. The dev domain is `localhost`, which inside a container
+# is the container itself: the coordinator and the worker join the network
+# namespace of the application's Traefik, so https://localhost reaches the
+# OIDC provider's JWKS as in the browser, RustFS is at http://127.0.0.1:9000,
+# and Traefik reaches the coordinator at http://127.0.0.1:8090 (the default
+# `TRINO_URL`); clients use https://localhost:8490. The worker listens on
+# 8091 (Traefik keeps 8080). They trust
+# the development CA (infra/traefik/gen-dev-certs.sh): entrypoint.sh adds it
+# to the JVM's truststore. Their stack stays apart, as on their own servers;
+# only the network is shared, and only here.
+#
+# The coordinator reads its rules with the secret in the URL (decision 0062),
+# until the dev stack moves to the machines' certificates (certificate.yml,
+# decision 0066 step 9).
+services:
+  coordinator:
+    network_mode: "container:${APP_STACK:-data-quality}-traefik-1"
+    environment:
+      TRINO_RULES_KEY: ${QUALITY_TRINO_RULES_KEY:?set QUALITY_TRINO_RULES_KEY in .env}
+    volumes:
+      - ./infra/traefik/certs/dev-ca.crt:/etc/trino/extra-ca.crt:ro
+      # Its HTTPS certificate: the development one (localhost, 127.0.0.1).
+      - ./infra/traefik/certs/local.crt:/etc/trino/tls/tls.crt:ro
+      - ./infra/traefik/certs/local.key:/etc/trino/tls/tls.key:ro
+  worker:
+    network_mode: "container:${APP_STACK:-data-quality}-traefik-1"
+    volumes:
+      - ./infra/traefik/certs/dev-ca.crt:/etc/trino/extra-ca.crt:ro

@@ -1,0 +1,39 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
+      "Resource": ["arn:aws:s3:::qd-tenant-*", "arn:aws:s3:::qd-tenant-*/*"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "admin:GetTableCatalog",
+        "admin:GetTableBucket",
+        "admin:GetTableNamespace",
+        "admin:SetTableNamespace",
+        "admin:UpdateTableNamespaceProperties",
+        "admin:DeleteTableNamespace",
+        "admin:GetTable",
+        "admin:GetTableMetadata",
+        "admin:GetTableMetadataLocation",
+        "admin:CreateTable",
+        "admin:CommitTable",
+        "admin:SetTableMetadata",
+        "admin:SetTableMetadataLocation",
+        "admin:RegisterTable"
+      ],
+      "Resource": ["arn:aws:s3:::qd-tenant-*", "arn:aws:s3:::qd-tenant-*/*"]
+    }
+  ]
+}

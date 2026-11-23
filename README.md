@@ -12,7 +12,13 @@ What is here today:
   module's consumers (a statement's pages followed to the last, Trino's
   errors, client tags, the query id in the caller's log span).
 
-The module's manifest, compose and Trino configuration follow.
+- `infra/trino`: the Trino cluster's compose, configuration, entrypoint
+  and certificate files, as they were in the core's `infra/trino`. They
+  become the module's compose and `etc/` with its manifest (the core's
+  decision 0077, step 13).
+- `tools/verify`: Trino's verification scripts, as they were in the core.
+  Some read files of the core (its Traefik, RustFS and worker stacks) and
+  run from a checkout of it until step 13 adapts them.
 
 ## Checks
 
