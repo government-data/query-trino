@@ -1,0 +1,37 @@
+[workspace]
+# query-trino: Trino as the module `query-trino` of Quality Data (the core's
+# decision 0077), providing the capability `sql-query`. Rust crates live
+# under `crates/`; the module's manifest and compose come with the core's
+# step 13.
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.90"
+license = "MIT"
+authors = ["quality-data"]
+repository = "https://github.com/quality-data/query-trino"
+
+[workspace.dependencies]
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls",
+    "json",
+] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time"] }
+tracing = "0.1"
+# The core's JSON log lines, for the client's log test only: a published
+# crate of the core, pinned by its commit.
+logging = { git = "https://github.com/quality-data/core", rev = "1d23c26ddffab099cb8a918c6973a38892d32fd5" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+todo = "warn"
+dbg_macro = "warn"
+too_many_lines = "warn"

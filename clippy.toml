@@ -1,0 +1,7 @@
+# Shared Clippy configuration for the workspace.
+# The minimum supported Rust version keeps Clippy from suggesting APIs newer
+# than the toolchain the workspace pins in `[workspace.package].rust-version`.
+msrv = "1.90"
+# Size limits (decision 0034): a function over 100 lines fails CI. The target
+# is 60; `cargo xtask sizes` checks the files.
+too-many-lines-threshold = 100
