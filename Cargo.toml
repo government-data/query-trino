@@ -11,7 +11,7 @@ edition = "2021"
 rust-version = "1.90"
 license = "MIT"
 authors = ["quality-data"]
-repository = "https://github.com/quality-data/query-trino"
+repository = "https://github.com/government-data/query-trino"
 
 [workspace.dependencies]
 reqwest = { version = "0.12", default-features = false, features = [
@@ -23,7 +23,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time"]
 tracing = "0.1"
 # The core's JSON log lines, for the client's log test only: a published
 # crate of the core, pinned by its commit.
-logging = { git = "https://github.com/quality-data/core", rev = "1d23c26ddffab099cb8a918c6973a38892d32fd5" }
+logging = { git = "https://github.com/government-data/core", rev = "1d23c26ddffab099cb8a918c6973a38892d32fd5" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
