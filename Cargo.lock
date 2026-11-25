@@ -499,7 +499,7 @@ checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 [[package]]
 name = "logging"
 version = "0.1.0"
-source = "git+https://github.com/quality-data/core?rev=1d23c26ddffab099cb8a918c6973a38892d32fd5#1d23c26ddffab099cb8a918c6973a38892d32fd5"
+source = "git+https://github.com/government-data/core?rev=1d23c26ddffab099cb8a918c6973a38892d32fd5#1d23c26ddffab099cb8a918c6973a38892d32fd5"
 dependencies = [
  "chrono",
  "prometheus-client",
