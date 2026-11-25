@@ -1,24 +1,20 @@
 # query-trino
 
-Trino as a module of Quality Data: it provides the capability `sql-query`
-to the modules that consume it (the orchestrator), over the protocols
-Trino speaks: its client protocol with a JWT per statement, access rules
-read over HTTP from the consumer, the lake through Iceberg REST, S3 and
-STS, and mTLS on the installation's internal entry point.
+The Trino workers of Quality Data as a module (quality-sdk decision 0011):
+the machines of the role `trino-worker` run Trino's worker at the exact
+release of engine-trino's coordinator (the capability `trino-cluster`),
+from the same image digest. The coordinator, Trino's access rules and the
+job runners are engine-trino's, in the orchestrator's repository
+(`modules/engine-trino`), with the coordinator's verification scripts.
 
-What is here today:
+What is here:
 
 - `crates/trino-client`: a client of Trino's REST protocol for the
-  module's consumers (a statement's pages followed to the last, Trino's
-  errors, client tags, the query id in the caller's log span).
+  consumers of `sql-query` (a statement's pages followed to the last, the
+  query id before the next page, extra credentials, kill, Trino's errors
+  without their message, client tags).
 
-- `infra/trino`: the Trino cluster's compose, configuration, entrypoint
-  and certificate files, as they were in the core's `infra/trino`. They
-  become the module's compose and `etc/` with its manifest (the core's
-  decision 0077, step 13).
-- `tools/verify`: Trino's verification scripts, as they were in the core.
-  Some read files of the core (its Traefik, RustFS and worker stacks) and
-  run from a checkout of it until step 13 adapts them.
+The worker's manifest, compose and configuration come next.
 
 ## Checks
 
