@@ -1,0 +1,87 @@
+# The query-trino module's compose, run on each machine of the role
+# `trino-worker` by the core's node agent (quality-sdk decision 0013),
+# which pulls the role's images by digest and writes these files:
+#
+#   docker compose --project-name query-trino --file compose.yml up -d --wait
+#
+# IMAGE_TRINO is Trino 484 mirrored into this module's ECR repository
+# (trinodb/trino:484@sha256:2704eb53935af5e582d63d6033e9bf99d20c325e9b0e30b1016ef59a4773979f),
+# the same digest as engine-trino's coordinator: `trino-cluster` 484 is
+# required exactly. IMAGE_PROXY is the Traefik mirrored beside it.
+#
+# - `worker`: Trino's worker (trino/), HTTPS on 8491 with this machine's
+#   certificate; on stop it shuts down gracefully (entrypoint.sh), within
+#   stop_grace_period.
+# - `lake-proxy`: in the worker's network namespace, the loopback way to
+#   the lake's gate with the machine's certificate (proxy/).
+#
+# Required environment: QD_MACHINE_DIR (ca.crt, machine.pem), TRINO_NODE_NAME
+# (this machine's name, as in its certificate), TRINO_DISCOVERY_URI
+# (https://<master's machine name>:<engine-trino's TRINO_PORT>),
+# QD_LAKE_GATE, QD_LAKE_NAME, TRINO_LAKE_WAREHOUSE, and TRINO_SECRETS_DIR: the coordinator's shared
+# secret and the lake user's keys, as the core hands them to the node agent
+# over mTLS (never in the role's files).
+# Optional: TRINO_TIER (l), TRINO_STOP_GRACE (30m).
+name: query-trino
+
+volumes:
+  worker-data: {}
+  spill: {}
+
+secrets:
+  trino-shared-secret:
+    file: ${TRINO_SECRETS_DIR:?}/trino-shared-secret
+  lake-access-key:
+    file: ${TRINO_SECRETS_DIR:?}/lake-access-key
+  lake-secret-key:
+    file: ${TRINO_SECRETS_DIR:?}/lake-secret-key
+
+services:
+  worker:
+    image: ${IMAGE_TRINO:?set IMAGE_TRINO to the image by digest}
+    restart: unless-stopped
+    user: "1000:1000"
+    entrypoint: ["/etc/trino-module/entrypoint.sh"]
+    ports: ["8491:8491"]
+    stop_grace_period: ${TRINO_STOP_GRACE:-30m}
+    secrets: [trino-shared-secret, lake-access-key, lake-secret-key]
+    environment:
+      TRINO_TIER: ${TRINO_TIER:-l}
+      TRINO_NODE_ID: ${TRINO_NODE_NAME:?}
+      TRINO_NODE_NAME: ${TRINO_NODE_NAME:?}
+      TRINO_DISCOVERY_URI: ${TRINO_DISCOVERY_URI:?}
+      # The catalogs the coordinator sends resolve these on each node.
+      TRINO_LAKE_S3_URL: http://127.0.0.1:9000
+      TRINO_LAKE_WAREHOUSE: ${TRINO_LAKE_WAREHOUSE:?}
+    extra_hosts: ["${TRINO_NODE_NAME:?}:127.0.0.1"]
+    volumes:
+      - ./trino:/etc/trino-module:ro
+      - ${QD_MACHINE_DIR:?}:/run/qd-node:ro
+      - worker-data:/data/trino
+      - spill:/spill
+    healthcheck:
+      # Trino's own health-check reads /etc/trino; this etc is rendered.
+      test: ["CMD", "bash", "-c", "[[ $$(curl -fsS http://127.0.0.1:8091/v1/info) == *'\"starting\":false'* ]]"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 12
+
+  lake-proxy:
+    image: ${IMAGE_PROXY:?set IMAGE_PROXY to the image by digest}
+    restart: unless-stopped
+    user: "1000:1000"
+    network_mode: "service:worker"
+    command:
+      - --entryPoints.lake.address=127.0.0.1:9000
+      - --providers.file.filename=/etc/qd/proxy/dynamic.yml
+      - --providers.file.watch=true
+      - --ping=true
+      - --ping.entryPoint=lake
+      - --log.format=json
+    environment:
+      QD_LAKE_GATE: ${QD_LAKE_GATE:?}
+      QD_LAKE_NAME: ${QD_LAKE_NAME:?}
+    volumes:
+      - ./proxy:/etc/qd/proxy:ro
+      - ${QD_MACHINE_DIR:?}:/run/qd-node:ro

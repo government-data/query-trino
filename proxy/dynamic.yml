@@ -1,0 +1,24 @@
+# A worker's way to the lake's gate (core decision 0090, point
+# 6.2.1): Trino talks plain HTTP to 127.0.0.1:9000 in its own network
+# namespace; this proxy presents the machine's certificate to the gate.
+# Traefik watches the file, so the agent's touch after a renewal is taken
+# without restarting Trino. Values come from the environment.
+http:
+  routers:
+    lake:
+      entryPoints: [lake]
+      rule: "PathPrefix(`/`)"
+      service: lake
+  services:
+    lake:
+      loadBalancer:
+        serversTransport: lake
+        servers:
+          - url: 'https://{{ env "QD_LAKE_GATE" }}'
+  serversTransports:
+    lake:
+      serverName: '{{ env "QD_LAKE_NAME" }}'
+      rootCAs: [/run/qd-node/ca.crt]
+      certificates:
+        - certFile: /run/qd-node/machine.pem
+          keyFile: /run/qd-node/machine.pem
