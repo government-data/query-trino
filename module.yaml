@@ -1,0 +1,25 @@
+# The query-trino module's manifest for quality-sdk (decisions 0002, 0011
+# and 0013): Trino's workers on the machines of the role `trino-worker`.
+# Its version is the module's own; a release tag is `v` + this version.
+name: query-trino
+version: 0.2.0
+
+# The coordinator's release, exactly: the agent refuses a mismatch, so a
+# worker never joins a coordinator of another version.
+requires:
+  capabilities:
+    - name: trino-cluster
+      version: 484
+      protocols: [trino-internal]
+
+# All workers are updated together in the Trino upgrade's planned stop
+# (engine-trino's coordinator drains first); a stopped worker shuts down
+# gracefully.
+topology:
+  roles:
+    - name: trino-worker
+      services: [worker, lake-proxy]
+      strategy: all
+
+health:
+  services: [worker, lake-proxy]
