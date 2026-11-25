@@ -18,10 +18,21 @@ pub(crate) async fn coordinator(answer: Arc<Answer>) -> String {
     coordinator_seen(answer).await.0
 }
 
+/// Each request's head (request line and headers), in order.
+pub(crate) type Heads = Arc<Mutex<Vec<String>>>;
+
 /// As [`coordinator`], and what it was sent.
 pub(crate) async fn coordinator_seen(answer: Arc<Answer>) -> (String, Seen) {
+    let (base, seen, _) = coordinator_heads(answer).await;
+    (base, seen)
+}
+
+/// As [`coordinator_seen`], and each request's whole head.
+pub(crate) async fn coordinator_heads(answer: Arc<Answer>) -> (String, Seen, Heads) {
     let seen = Seen::default();
     let saw = seen.clone();
+    let heads = Heads::default();
+    let kept = heads.clone();
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
     let hits = Arc::new(AtomicUsize::new(0));
@@ -29,7 +40,7 @@ pub(crate) async fn coordinator_seen(answer: Arc<Answer>) -> (String, Seen) {
     tokio::spawn(async move {
         while let Ok((mut socket, _)) = listener.accept().await {
             let (hits, answer, at) = (hits.clone(), answer.clone(), at.clone());
-            let saw = saw.clone();
+            let (saw, kept) = (saw.clone(), kept.clone());
             tokio::spawn(async move {
                 let mut buf = vec![0u8; 8192];
                 let n = socket.read(&mut buf).await.unwrap_or(0);
@@ -41,6 +52,7 @@ pub(crate) async fn coordinator_seen(answer: Arc<Answer>) -> (String, Seen) {
                         .then(|| value.trim().to_string())
                 });
                 saw.lock().unwrap().push((path.clone(), tags));
+                kept.lock().unwrap().push(head.clone());
                 let token = head
                     .lines()
                     .any(|l| l.eq_ignore_ascii_case("authorization: Bearer t0k"));
@@ -57,7 +69,7 @@ pub(crate) async fn coordinator_seen(answer: Arc<Answer>) -> (String, Seen) {
             });
         }
     });
-    (base, seen)
+    (base, seen, heads)
 }
 
 /// A statement of two pages, the first naming its query.

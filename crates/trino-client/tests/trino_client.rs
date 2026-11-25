@@ -36,7 +36,9 @@ async fn a_statements_pages_are_followed_to_the_last_in_order() {
 #[tokio::test]
 async fn trinos_error_and_a_refused_token_are_said() {
     let base = coordinator(Arc::new(|_, _, _| {
-        let error = json!({ "error": { "errorName": "TABLE_NOT_FOUND", "message": "no t" } });
+        let error = json!({ "error": {
+            "errorName": "TABLE_NOT_FOUND", "errorType": "USER_ERROR", "message": "no t"
+        } });
         (200, error.to_string())
     }))
     .await;
@@ -45,6 +47,7 @@ async fn trinos_error_and_a_refused_token_are_said() {
         client.execute("t0k", "SELECT * FROM t").await,
         Err(TrinoError::Failed {
             name: "TABLE_NOT_FOUND".into(),
+            error_type: "USER_ERROR".into(),
             message: "no t".into()
         })
     );
