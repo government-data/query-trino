@@ -9,16 +9,19 @@
 # the same digest as engine-trino's coordinator: `trino-cluster` 484 is
 # required exactly. IMAGE_PROXY is the Traefik mirrored beside it.
 #
-# - `worker`: Trino's worker (trino/), HTTPS on 8491 with this machine's
-#   certificate; on stop it shuts down gracefully (entrypoint.sh), within
-#   stop_grace_period.
+# - `worker`: Trino's worker (trino/), HTTPS on 443 with this machine's
+#   certificate, the machine's one published port (ruling 71 of decision
+#   0011): Trino announces `https://<TRINO_NODE_NAME>:443` and the
+#   coordinator calls it there. On stop it shuts down gracefully
+#   (entrypoint.sh), within stop_grace_period.
 # - `lake-proxy`: in the worker's network namespace, the loopback way to
 #   the lake's gate with the machine's certificate (proxy/).
 #
 # Required environment: QD_MACHINE_DIR (ca.crt, machine.pem), TRINO_NODE_NAME
 # (this machine's name, as in its certificate), TRINO_DISCOVERY_URI
 # (https://<master's machine name>:<engine-trino's TRINO_PORT>),
-# QD_LAKE_GATE, QD_LAKE_NAME, TRINO_LAKE_WAREHOUSE, and TRINO_SECRETS_DIR: the coordinator's shared
+# QD_LAKE_GATE (<lake machine>:443), QD_LAKE_NAME (<lake machine>),
+# TRINO_LAKE_WAREHOUSE, and TRINO_SECRETS_DIR: the coordinator's shared
 # secret and the lake user's keys, as the core hands them to the node agent
 # over mTLS (never in the role's files).
 # Optional: TRINO_TIER (l), TRINO_STOP_GRACE (30m).
@@ -42,7 +45,10 @@ services:
     restart: unless-stopped
     user: "1000:1000"
     entrypoint: ["/etc/trino-module/entrypoint.sh"]
-    ports: ["8491:8491"]
+    ports: ["443:443"]
+    # Trino runs as uid 1000 and listens on 443 in its own namespace.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 443
     stop_grace_period: ${TRINO_STOP_GRACE:-30m}
     secrets: [trino-shared-secret, lake-access-key, lake-secret-key]
     environment:
