@@ -14,12 +14,19 @@ requires:
 
 # All workers are updated together in the Trino upgrade's planned stop
 # (engine-trino's coordinator drains first); a stopped worker shuts down
-# gracefully.
+# gracefully. Its machines get from the core, over mTLS only, the
+# coordinator's values of the cluster's shared secret and of the query
+# engine's lake keys, under their fixed names (rulings 51 and 89 of
+# decision 0011): the core makes the lake user when they arrive.
 topology:
   roles:
     - name: trino-worker
       services: [worker, lake-proxy]
       strategy: all
+      secrets:
+        - trino-shared-secret
+        - lake-query-engine-access-key
+        - lake-query-engine-secret-key
 
 health:
   services: [worker, lake-proxy]

@@ -76,7 +76,7 @@ for _ in $(seq 1 40); do
 done
 expect_match "a person's query runs with retry_policy NONE" "'retry_policy': 'NONE'" \
   "$(docker exec "$P-coordinator" curl -sS --cacert /run/qd-node/ca.crt -H "Authorization: Bearer $admin" \
-    "https://localhost:8490/v1/query/$pid" | python3 -c 'import json,sys; print(json.load(sys.stdin)["session"]["systemProperties"])' 2>/dev/null)"
+    "https://localhost/v1/query/$pid" | python3 -c 'import json,sys; print(json.load(sys.stdin)["session"]["systemProperties"])' 2>/dev/null)"
 for _ in $(seq 1 40); do
   r=$(tq "$admin" "SELECT count(*) FROM system.runtime.tasks WHERE node_id = '$P-w2' AND state = 'RUNNING'
     AND query_id = '$pid'")
