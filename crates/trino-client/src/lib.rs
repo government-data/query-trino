@@ -20,7 +20,7 @@ mod error;
 pub use answer::{Answer, Column};
 pub use error::TrinoError;
 
-/// Trino's coordinator, at `base` (`https://…:8490`).
+/// Trino's coordinator, at `base` (`https://trino.<master's name>`).
 #[derive(Debug, Clone)]
 pub struct TrinoClient {
     http: reqwest::Client,

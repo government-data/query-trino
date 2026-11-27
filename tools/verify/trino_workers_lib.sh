@@ -22,15 +22,16 @@ worker_cert() { # NAME: a node directory with the worker's own certificate
 worker() { # NAME [IMAGE]
   worker_cert "$1"
   docker run -d --name "$1" --hostname "$1" --network "$P" --memory 2g \
+    --sysctl net.ipv4.ip_unprivileged_port_start=443 \
     --entrypoint /etc/trino-module/entrypoint.sh \
     -e TRINO_TIER=s -e TRINO_HEAP=1G -e TRINO_HEADROOM=300MB -e TRINO_NODE_CAP=700MB \
     -e TRINO_NODE_ID="$1" -e TRINO_NODE_NAME="$1" \
-    -e TRINO_DISCOVERY_URI="https://$P-coordinator:8490" \
+    -e TRINO_DISCOVERY_URI="https://$P-coordinator" \
     -e TRINO_LAKE_S3_URL="http://$P-lake:9000" -e TRINO_LAKE_WAREHOUSE="$WAREHOUSE" \
     -v "$WORKERS/trino:/etc/trino-module:ro" -v "$D/$1:/run/qd-node:ro" \
     -v "$D/secrets/trino-shared-secret:/run/secrets/trino-shared-secret:ro" \
-    -v "$D/secrets/lake-access-key:/run/secrets/lake-access-key:ro" \
-    -v "$D/secrets/lake-secret-key:/run/secrets/lake-secret-key:ro" \
+    -v "$D/secrets/lake-query-engine-access-key:/run/secrets/lake-query-engine-access-key:ro" \
+    -v "$D/secrets/lake-query-engine-secret-key:/run/secrets/lake-query-engine-secret-key:ro" \
     --tmpfs /spill:uid=1000,gid=1000 "${2:-$TRINO_IMAGE}" >/dev/null
 }
 

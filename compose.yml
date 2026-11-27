@@ -18,13 +18,23 @@
 #   the lake's gate with the machine's certificate (proxy/).
 #
 # Required environment: QD_MACHINE_DIR (ca.crt, machine.pem), TRINO_NODE_NAME
-# (this machine's name, as in its certificate), TRINO_DISCOVERY_URI
-# (https://<master's machine name>:<engine-trino's TRINO_PORT>),
-# QD_LAKE_GATE (<lake machine>:443), QD_LAKE_NAME (<lake machine>),
-# TRINO_LAKE_WAREHOUSE, and TRINO_SECRETS_DIR: the coordinator's shared
-# secret and the lake user's keys, as the core hands them to the node agent
-# over mTLS (never in the role's files).
+# (this machine's name, as in its certificate), QD_CORE_NAME (the master's
+# machine name: the coordinator is https://trino.<QD_CORE_NAME> on the
+# master's 443, ruling 90), QD_LAKE_GATE (<lake machine>:443), QD_LAKE_NAME
+# (<lake machine>), TRINO_LAKE_WAREHOUSE, and TRINO_SECRETS_DIR: the role's
+# secrets (trino-shared-secret, lake-query-engine-access-key,
+# lake-query-engine-secret-key; module.yaml) as the core hands them to the
+# node agent over mTLS (never in the role's files).
 # Optional: TRINO_TIER (l), TRINO_STOP_GRACE (30m).
+#
+# Names (ruling 91): this machine's own name is this file's (loopback).
+# Every other machine's names (the master's and trino.<master>, the lake,
+# the other workers) come from hosts.yml, a compose override the node agent
+# writes beside .env from the core's list of machines and adds after this
+# file (`--file compose.yml --file hosts.yml`): an `extra_hosts` entry
+# `<name>:<IPv4>` for each name of each other live machine, on `worker`
+# only (`lake-proxy` shares its network namespace). Docker's DNS does not
+# read the host's /etc/hosts.
 name: query-trino
 
 volumes:
@@ -34,10 +44,10 @@ volumes:
 secrets:
   trino-shared-secret:
     file: ${TRINO_SECRETS_DIR:?}/trino-shared-secret
-  lake-access-key:
-    file: ${TRINO_SECRETS_DIR:?}/lake-access-key
-  lake-secret-key:
-    file: ${TRINO_SECRETS_DIR:?}/lake-secret-key
+  lake-query-engine-access-key:
+    file: ${TRINO_SECRETS_DIR:?}/lake-query-engine-access-key
+  lake-query-engine-secret-key:
+    file: ${TRINO_SECRETS_DIR:?}/lake-query-engine-secret-key
 
 services:
   worker:
@@ -50,12 +60,12 @@ services:
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 443
     stop_grace_period: ${TRINO_STOP_GRACE:-30m}
-    secrets: [trino-shared-secret, lake-access-key, lake-secret-key]
+    secrets: [trino-shared-secret, lake-query-engine-access-key, lake-query-engine-secret-key]
     environment:
       TRINO_TIER: ${TRINO_TIER:-l}
       TRINO_NODE_ID: ${TRINO_NODE_NAME:?}
       TRINO_NODE_NAME: ${TRINO_NODE_NAME:?}
-      TRINO_DISCOVERY_URI: ${TRINO_DISCOVERY_URI:?}
+      TRINO_DISCOVERY_URI: https://trino.${QD_CORE_NAME:?set QD_CORE_NAME to the master's machine name}
       # The catalogs the coordinator sends resolve these on each node.
       TRINO_LAKE_S3_URL: http://127.0.0.1:9000
       TRINO_LAKE_WAREHOUSE: ${TRINO_LAKE_WAREHOUSE:?}
