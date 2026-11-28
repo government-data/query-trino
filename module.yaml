@@ -17,16 +17,21 @@ requires:
 # gracefully. Its machines get from the core, over mTLS only, the
 # coordinator's values of the cluster's shared secret and of the query
 # engine's lake keys, under their fixed names (rulings 51 and 89 of
-# decision 0011): the core makes the lake user when they arrive.
+# decision 0011): the core makes the lake user when they arrive. The values
+# are engine-trino's, the provider of `trino-cluster`, which generates them
+# (ruling 96): this module generates none.
 topology:
   roles:
     - name: trino-worker
       services: [worker, lake-proxy]
       strategy: all
       secrets:
-        - trino-shared-secret
-        - lake-query-engine-access-key
-        - lake-query-engine-secret-key
+        - name: trino-shared-secret
+          from: trino-cluster
+        - name: lake-query-engine-access-key
+          from: trino-cluster
+        - name: lake-query-engine-secret-key
+          from: trino-cluster
 
 health:
   services: [worker, lake-proxy]
